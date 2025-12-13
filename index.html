@@ -94,17 +94,15 @@ button:hover{transform:translateY(-2px)}
   padding:12px;
   border-bottom:1px solid #e0e0e0
 }
-.btn-small{
-  padding:6px 12px;
-  margin:0 3px;
-  font-size:14px;
+.btn-delete{
+  padding:8px 14px;
+  background:#ef4444;
+  border:none;
   border-radius:5px;
   cursor:pointer;
-  border:none;
-  color:#fff
+  color:#fff;
+  font-size:14px;
 }
-.btn-edit{background:#f59e0b}
-.btn-delete{background:#ef4444}
 .btn-export{
   background:#10b981;
   width:auto;
@@ -202,9 +200,8 @@ button:hover{transform:translateY(-2px)}
 <script>
 let dados = [];
 let periodoBox = 'dia';
-let editandoIndex = -1;
 
-// Inicializar dados do localStorage
+// Persistência com localStorage
 function carregarDados() {
   try {
     const stored = localStorage.getItem('pressao-dados');
@@ -229,36 +226,23 @@ function ordenarDados() {
   dados.sort((a,b)=>new Date(a.data)-new Date(b.data));
 }
 
-/* ---------- GRÁFICO LINHA ---------- */
+/* ---------- GRÁFICOS ---------- */
 const graficoLinha = new Chart(document.getElementById('graficoLinha'),{
   type:'line',
   data:{labels:[],datasets:[
     {label:'Sistólica',data:[],borderColor:'#ef4444',tension:.4,fill:false},
     {label:'Diastólica',data:[],borderColor:'#3b82f6',tension:.4,fill:false}
   ]},
-  options:{
-    responsive:true,
-    maintainAspectRatio:false,
-    plugins:{
-      legend:{display:true}
-    }
-  }
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true}}}
 });
 
-/* ---------- GRÁFICO BOX ---------- */
 const graficoBox = new Chart(document.getElementById('graficoBox'),{
   type:'boxplot',
   data:{labels:[],datasets:[]},
-  options:{
-    responsive:true,
-    maintainAspectRatio:false,
-    plugins:{
-      legend:{display:true}
-    }
-  }
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true}}}
 });
 
-/* ---------- AGRUPAMENTO CRONOLÓGICO ---------- */
+/* ---------- AGRUPAMENTO ---------- */
 function agruparPorPeriodo() {
   const grupos = {};
   dados.forEach(d=>{
@@ -314,10 +298,12 @@ function atualizarBox(){
   graficoBox.update();
 }
 
-/* ---------- ESTATÍSTICAS ---------- */
 function atualizarEstatisticas(){
   if(dados.length===0){
-    mediaSis.textContent=mediaDia.textContent=maxima.textContent=minima.textContent='--';
+    document.getElementById('mediaSis').textContent =
+    document.getElementById('mediaDia').textContent =
+    document.getElementById('maxima').textContent =
+    document.getElementById('minima').textContent = '--';
     return;
   }
   
@@ -326,61 +312,44 @@ function atualizarEstatisticas(){
   
   const mediaSisVal = (sis.reduce((a,b)=>a+b,0)/sis.length).toFixed(0);
   const mediaDiaVal = (dia.reduce((a,b)=>a+b,0)/dia.length).toFixed(0);
-  const maxSis = Math.max(...sis);
-  const maxDia = Math.max(...dia);
-  const minSis = Math.min(...sis);
-  const minDia = Math.min(...dia);
   
-  mediaSis.textContent = mediaSisVal + ' mmHg';
-  mediaDia.textContent = mediaDiaVal + ' mmHg';
-  maxima.textContent = maxSis + '/' + maxDia;
-  minima.textContent = minSis + '/' + minDia;
+  document.getElementById('mediaSis').textContent = mediaSisVal + ' mmHg';
+  document.getElementById('mediaDia').textContent = mediaDiaVal + ' mmHg';
+  document.getElementById('maxima').textContent = Math.max(...sis) + '/' + Math.max(...dia);
+  document.getElementById('minima').textContent = Math.min(...sis) + '/' + Math.min(...dia);
 }
 
-/* ---------- TABELA HISTÓRICO ---------- */
 function atualizarTabela(){
   const dadosOrdenados = [...dados].sort((a,b)=>new Date(b.data)-new Date(a.data));
   
   let html = '<table class="history-table"><thead><tr>';
-  html += '<th>Data/Hora</th><th>Sistólica</th><th>Diastólica</th><th>Ações</th>';
+  html += '<th>Data/Hora</th><th>Sistólica</th><th>Diastólica</th><th>Ação</th>';
   html += '</tr></thead><tbody>';
   
   if(dadosOrdenados.length===0){
     html += '<tr><td colspan="4" style="text-align:center;color:#999">Nenhuma medição registrada</td></tr>';
   } else {
-    dadosOrdenados.forEach((d,i)=>{
+    dadosOrdenados.forEach((d, i) => {
       const dt = new Date(d.data);
-      const dataFormatada = dt.toLocaleDateString('pt-BR')+' '+dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-      const indexOriginal = dados.findIndex(item=>item.data===d.data&&item.sis===d.sis&&item.dia===d.dia);
+      const dataFormatada = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+      const indexOriginal = dados.findIndex(item => 
+        item.data === d.data && item.sis === d.sis && item.dia === d.dia
+      );
       
       html += '<tr>';
-      html += '<td>'+dataFormatada+'</td>';
-      html += '<td>'+d.sis+' mmHg</td>';
-      html += '<td>'+d.dia+' mmHg</td>';
-      html += '<td>';
-      html += '<button class="btn-small btn-edit" onclick="editarMedicao('+indexOriginal+')">✏️ Editar</button>';
-      html += '<button class="btn-small btn-delete" onclick="excluirMedicao('+indexOriginal+')">🗑️ Excluir</button>';
-      html += '</td>';
+      html += `<td>${dataFormatada}</td>`;
+      html += `<td>${d.sis} mmHg</td>`;
+      html += `<td>${d.dia} mmHg</td>`;
+      html += `<td><button class="btn-delete" onclick="excluirMedicao(${indexOriginal})">🗑️ Excluir</button></td>`;
       html += '</tr>';
     });
   }
   
   html += '</tbody></table>';
-  tabelaHistorico.innerHTML = html;
+  document.getElementById('tabelaHistorico').innerHTML = html;
 }
 
-/* ---------- EDITAR/EXCLUIR ---------- */
-function editarMedicao(index){
-  editandoIndex = index;
-  const d = dados[index];
-  sistolica.value = d.sis;
-  diastolica.value = d.dia;
-  datahora.value = d.data;
-  document.querySelector('.card:nth-child(3) h3').textContent = 'Editar Medição';
-  document.querySelector('.card:nth-child(3) button').textContent = 'Atualizar Medição';
-  window.scrollTo({top:0,behavior:'smooth'});
-}
-
+/* ---------- EXCLUIR ---------- */
 function excluirMedicao(index){
   if(confirm('Deseja realmente excluir esta medição?')){
     dados.splice(index,1);
@@ -391,16 +360,13 @@ function excluirMedicao(index){
 
 /* ---------- EXPORTAR ---------- */
 function exportarCSV(){
-  if(dados.length===0){
-    alert('Não há dados para exportar');
-    return;
-  }
+  if(dados.length===0) return alert('Não há dados para exportar');
   
   let csv = 'Data/Hora,Sistólica (mmHg),Diastólica (mmHg)\n';
   dados.forEach(d=>{
     const dt = new Date(d.data);
     const dataFormatada = dt.toLocaleDateString('pt-BR')+' '+dt.toLocaleTimeString('pt-BR');
-    csv += dataFormatada+','+d.sis+','+d.dia+'\n';
+    csv += `${dataFormatada},${d.sis},${d.dia}\n`;
   });
   
   const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
@@ -411,13 +377,9 @@ function exportarCSV(){
 }
 
 function exportarTXT(){
-  if(dados.length===0){
-    alert('Não há dados para exportar');
-    return;
-  }
+  if(dados.length===0) return alert('Não há dados para exportar');
   
-  let conteudo = 'CONTROLE DE PRESSÃO ARTERIAL\n';
-  conteudo += 'Eliana Mendes de Assis\n';
+  let conteudo = 'CONTROLE DE PRESSÃO ARTERIAL\nEliana Mendes de Assis\n';
   conteudo += 'Relatório gerado em: '+new Date().toLocaleString('pt-BR')+'\n\n';
   conteudo += '═══════════════════════════════════════\n\n';
   
@@ -427,18 +389,18 @@ function exportarTXT(){
   const mediaDiaVal = (dia.reduce((a,b)=>a+b,0)/dia.length).toFixed(0);
   
   conteudo += 'ESTATÍSTICAS:\n';
-  conteudo += '• Média: '+mediaSisVal+'/'+mediaDiaVal+' mmHg\n';
-  conteudo += '• Máxima: '+Math.max(...sis)+'/'+Math.max(...dia)+' mmHg\n';
-  conteudo += '• Mínima: '+Math.min(...sis)+'/'+Math.min(...dia)+' mmHg\n';
-  conteudo += '• Total de medições: '+dados.length+'\n\n';
+  conteudo += `• Média: ${mediaSisVal}/${mediaDiaVal} mmHg\n`;
+  conteudo += `• Máxima: ${Math.max(...sis)}/${Math.max(...dia)} mmHg\n`;
+  conteudo += `• Mínima: ${Math.min(...sis)}/${Math.min(...dia)} mmHg\n`;
+  conteudo += `• Total de medições: ${dados.length}\n\n`;
   conteudo += '═══════════════════════════════════════\n\n';
-  
   conteudo += 'HISTÓRICO DE MEDIÇÕES:\n\n';
+  
   const dadosOrdenados = [...dados].sort((a,b)=>new Date(b.data)-new Date(a.data));
   dadosOrdenados.forEach((d,i)=>{
     const dt = new Date(d.data);
     const dataFormatada = dt.toLocaleDateString('pt-BR')+' '+dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-    conteudo += (i+1)+'. '+dataFormatada+' - '+d.sis+'/'+d.dia+' mmHg\n';
+    conteudo += `${i+1}. ${dataFormatada} - ${d.sis}/${d.dia} mmHg\n`;
   });
   
   const blob = new Blob([conteudo],{type:'text/plain;charset=utf-8;'});
@@ -455,7 +417,6 @@ function atualizarTudo(){
   atualizarTabela();
 }
 
-/* ---------- CONTROLES ---------- */
 function mudarPeriodo(p,btn){
   periodoBox=p;
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
@@ -464,24 +425,19 @@ function mudarPeriodo(p,btn){
 }
 
 function salvar(){
-  const sis=sistolica.value;
-  const dia=diastolica.value;
-  const data=datahora.value;
-  if(!sis||!dia||!data)return alert('Preencha todos os campos');
+  const sis = sistolica.value.trim();
+  const dia = diastolica.value.trim();
+  const data = datahora.value;
   
-  if(editandoIndex>=0){
-    dados[editandoIndex]={sis,dia,data};
-    editandoIndex=-1;
-    document.querySelector('.card:nth-child(3) h3').textContent='Nova Medição';
-    document.querySelector('.card:nth-child(3) button').textContent='Salvar Medição';
-  } else {
-    dados.push({sis,dia,data});
-  }
+  if(!sis || !dia || !data) return alert('Preencha todos os campos');
   
+  dados.push({sis, dia, data});
   salvarDados();
   atualizarTudo();
-  sistolica.value=diastolica.value='';
-  alert(editandoIndex>=0?'Medição atualizada!':'Medição salva com sucesso!');
+  
+  sistolica.value = '';
+  diastolica.value = '';
+  alert('Medição salva com sucesso!');
 }
 
 /* ---------- INIT ---------- */
@@ -489,10 +445,9 @@ function init() {
   carregarDados();
   atualizarTudo();
   
-  // Definir data/hora atual como padrão
   const agora = new Date();
   agora.setMinutes(agora.getMinutes() - agora.getTimezoneOffset());
-  datahora.value = agora.toISOString().slice(0,16);
+  document.getElementById('datahora').value = agora.toISOString().slice(0,16);
 }
 
 init();
