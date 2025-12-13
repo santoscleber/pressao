@@ -204,21 +204,21 @@ let dados = [];
 let periodoBox = 'dia';
 let editandoIndex = -1;
 
-// Inicializar dados do storage
-async function carregarDados() {
+// Inicializar dados do localStorage
+function carregarDados() {
   try {
-    const result = await window.storage.get('pressao-dados');
-    if (result && result.value) {
-      dados = JSON.parse(result.value);
+    const stored = localStorage.getItem('pressao-dados');
+    if (stored) {
+      dados = JSON.parse(stored);
     }
   } catch (error) {
     console.log('Nenhum dado anterior encontrado');
   }
 }
 
-async function salvarDados() {
+function salvarDados() {
   try {
-    await window.storage.set('pressao-dados', JSON.stringify(dados));
+    localStorage.setItem('pressao-dados', JSON.stringify(dados));
   } catch (error) {
     console.error('Erro ao salvar:', error);
   }
@@ -463,7 +463,7 @@ function mudarPeriodo(p,btn){
   atualizarBox();
 }
 
-async function salvar(){
+function salvar(){
   const sis=sistolica.value;
   const dia=diastolica.value;
   const data=datahora.value;
@@ -478,15 +478,15 @@ async function salvar(){
     dados.push({sis,dia,data});
   }
   
-  await salvarDados();
+  salvarDados();
   atualizarTudo();
   sistolica.value=diastolica.value='';
   alert(editandoIndex>=0?'Medição atualizada!':'Medição salva com sucesso!');
 }
 
 /* ---------- INIT ---------- */
-async function init() {
-  await carregarDados();
+function init() {
+  carregarDados();
   atualizarTudo();
   
   // Definir data/hora atual como padrão
